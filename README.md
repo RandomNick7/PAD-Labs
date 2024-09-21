@@ -95,8 +95,73 @@ Responses: **200** OK, **401** Unauthorized, **404** (lobby) Not Found
 `GET /game/<GID>` - Get information about a particular game (Province ownership, active units, etc.)  
 Responses: **200** OK, **401** Unauthorized, **404** (game) Not Found, **429** Too Many Requests
 
+A Websocket connection would be established as soon as players would connect to a game, as to keep players updated in real-time with any actions performed by others. Data being sent would have an ID that would correspond with the action performed, to prevent ambiguities.
+
+When a player chooses a policy to affect his nation, only the ID of the policy would be required to be sent:
+```js
+data: {
+    "actionID": 1,
+    "policyID": <int>
+}
+```
+
+If a player wants to upgrade a province:
+```js
+data: {
+    "actionID": 2,
+    "provinceID": <int>,
+    "upgradeID": <int>
+}
+```
+
+
+If a player chooses a diplomatic action (requesting alliance, signing a non-aggression pact, declaring war, etc.), the target player is required as well:
+```js
+data: {
+    "actionID": 3,
+    "targetPlayer": <UID>,
+    "diploID": <int>
+}
+```
+
+The same goes if a player wants to perform a resource trade with another:
+```js
+data: JSON.stringify({
+    "actionID": 4,
+    "targetPlayer": <UID>,
+    "tradeSendItems": [<int>],
+    "tradeSendQty": [<int>],
+    "tradeGetItems": [<int>],
+    "tradeGetQty": [<int>],
+    "yearlyRate": <bool>
+})
+```
+
+If a player wishes to create a unit:
+```js
+data: {
+    "actionID": 5,
+    "unitTypes": [<int>],
+    "unitIDs": [<int>]
+}
+```
+
+And lastly, if a player wants to send a message to another:
+```js
+{
+    "actionID": 6,
+    "targetPlayer": <UID>,
+    "messageBody": <string>
+}
+```
+
+The above should cover most actions a player may perform during a session within the game that would require other players to be aware of.
+
 `GET /status` - Check service status  
 Responses: **200** OK, **503** Service Unavailable
+
+
+
 
 All requests that may return Error **401**, except for `POST /login`, require a bearer authorization token in their request headers, as they can only be performed successfully once logged in
 
