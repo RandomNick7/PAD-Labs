@@ -4,10 +4,12 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
 const port = 6969
+const target_addr = "user-service"
+const target_port = 9000
 const app = express()
 app.use(express.json())
 
-const PROTO_PATH = __dirname + '/../protos/user_routes.proto';
+const PROTO_PATH = __dirname + '/protos/user_routes.proto';
 const loaderOptions = {
   keepCase: true,
   longs: String,
@@ -18,11 +20,12 @@ const loaderOptions = {
 
 const packageDef = protoLoader.loadSync(PROTO_PATH, loaderOptions);
 const userRouter = grpc.loadPackageDefinition(packageDef).user_routes;
-const client = new userRouter.UserRoutes("localhost:9000", grpc.credentials.createInsecure())
+const client = new userRouter.UserRoutes(`${target_addr}:${target_port}`, grpc.credentials.createInsecure())
 
 
 app.post('/login', async (req, res) => {
   try{
+    console.log("Message sent!")
     client.tryLogin(req.body, function(err, response){
       res.json({"data": response})
     })
