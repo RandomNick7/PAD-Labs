@@ -3,9 +3,12 @@ const axios = require('axios');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
-const port = 6969
-const target_addr = "user-service"
-const target_port = 9000
+const self_port = 6969
+const user_addr = "user-service"
+const user_port = 9000
+const timeout_max = 10000 //ms
+let timed_out = false
+
 const app = express()
 app.use(express.json())
 
@@ -20,20 +23,45 @@ const loaderOptions = {
 
 const packageDef = protoLoader.loadSync(PROTO_PATH, loaderOptions);
 const userRouter = grpc.loadPackageDefinition(packageDef).user_routes;
-const client = new userRouter.UserRoutes(`${target_addr}:${target_port}`, grpc.credentials.createInsecure())
+const client = new userRouter.UserRoutes(`${user_addr}:${user_port}`, grpc.credentials.createInsecure())
+
+
+async function asyncWrapper(method, req){
+  return new Promise((resolve, reject) => {
+    deadline = new Date(Date.now() + timeout_max)
+    client[method](req.body, {deadline: deadline}, (err, response) => {
+      if(err){
+        if (err.code == grpc.status.DEADLINE_EXCEEDED){
+          timed_out = true
+          return reject("Request Timeout")
+        }
+        return reject(err)
+      }
+      resolve(response)
+    })
+  })
+}
 
 
 app.post('/login', async (req, res) => {
   try{
     console.log("Message sent!")
-    client.tryLogin(req.body, function(err, response){
-      res.json({"data": response})
-    })
+    timed_out = false
+    response = await asyncWrapper("tryLogin", req)
+    res.json({"data": response})
   }catch(error){
-    res.status(500).json({error: "Internal server error!"})
+    if(timed_out){
+      res.status(408).json({"data": response})
+    }else{
+      res.status(500).json({error: "Internal server error!" + error})
+    }
   }
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+
+
+
+
+app.listen(self_port, () => {
+  console.log(`Example app listening on port ${self_port}`)
 })

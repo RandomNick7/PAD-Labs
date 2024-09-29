@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11user_routes.proto\x12\x0buser_routes\"E\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x12\n\nnewAccount\x18\x03 \x01(\x08\"<\n\x0cLoginConfirm\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x12\n\x05token\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x08\n\x06_token2O\n\nUserRoutes\x12\x41\n\x08tryLogin\x12\x18.user_routes.Credentials\x1a\x19.user_routes.LoginConfirm\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11user_routes.proto\x12\x0buser_routes\"E\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x12\n\nnewAccount\x18\x03 \x01(\x08\"-\n\x0cLoginConfirm\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\r\n\x05token\x18\x02 \x01(\t2O\n\nUserRoutes\x12\x41\n\x08tryLogin\x12\x18.user_routes.Credentials\x1a\x19.user_routes.LoginConfirm\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,7 +34,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CREDENTIALS']._serialized_start=34
   _globals['_CREDENTIALS']._serialized_end=103
   _globals['_LOGINCONFIRM']._serialized_start=105
-  _globals['_LOGINCONFIRM']._serialized_end=165
-  _globals['_USERROUTES']._serialized_start=167
-  _globals['_USERROUTES']._serialized_end=246
+  _globals['_LOGINCONFIRM']._serialized_end=150
+  _globals['_USERROUTES']._serialized_start=152
+  _globals['_USERROUTES']._serialized_end=231
 # @@protoc_insertion_point(module_scope)
