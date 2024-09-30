@@ -1,3 +1,5 @@
+name: game_deployement
+
 services:
   gateway:
     build:
@@ -5,6 +7,22 @@ services:
       dockerfile: Dockerfile
     ports:
       - "6969:6969"
+  
+  db:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    healthcheck:
+      test: pg_isready -U myuser -d mydatabase
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pg_data:/var/lib/postgresql/data
 
   user-service:
     build:
@@ -12,3 +30,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "9000:9000"
+    environment:
+      DATABASE_URL: postgres://myuser:mypassword@db:5432/mydatabase
+      JWT_SECRET: user_token_secret
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pg_data:

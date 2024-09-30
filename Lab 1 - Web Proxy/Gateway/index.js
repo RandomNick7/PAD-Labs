@@ -48,12 +48,12 @@ app.post('/login', async (req, res) => {
     console.log("Message sent!")
     timed_out = false
     response = await asyncWrapper("tryLogin", req)
-    res.json({"data": response})
+    res.status(response["status"]).json({"data": response})
   }catch(error){
     if(timed_out){
       res.status(408).json({"data": response})
     }else{
-      res.status(500).json({error: "Internal server error!" + error})
+      res.status(500).json({error: "Internal server error! " + error})
     }
   }
 })

@@ -9,3 +9,5 @@ MarkupSafe==2.1.5
 protobuf==5.28.2
 setuptools==75.1.0
 Werkzeug==3.0.4
+psycopg2-binary
+PyJWT
