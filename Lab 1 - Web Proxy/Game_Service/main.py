@@ -25,8 +25,17 @@ class GameService(pb2_grpc.GameRoutesServicer):
         
         query = "SELECT name, curr_members, max_members FROM lobby_tbl WHERE status!=0"
         cursor.execute(query)
-        # Just return the list as-is
-        return pb2.LobbyList(lobbies = cursor.fetchall())
+
+        lobby_list = cursor.fetchall()
+        proto_lobbies = []
+        for lobby in lobby_list:
+            p_lobby = pb2.LobbyInfo()
+            p_lobby.name = lobby[0]
+            p_lobby.currMembers = lobby[1]
+            p_lobby.maxMembers = lobby[2]
+            proto_lobbies.append(p_lobby)
+
+        return pb2.LobbyList(lobbies = proto_lobbies)
 
 
 def addAllServicers(server):

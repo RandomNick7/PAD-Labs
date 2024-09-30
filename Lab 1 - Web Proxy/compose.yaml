@@ -1,6 +1,15 @@
 name: game_deployement
 
 services:
+  redis:
+    image: redis:7
+    command: redis-server
+    healthcheck:
+      test: redis-cli ping
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
   gateway:
     build:
       context: ./Gateway
@@ -12,6 +21,10 @@ services:
       interval: 3s
       timeout: 5s
       retries: 5
+    stop_grace_period: 2s
+    depends_on:
+      redis:
+        condition: service_healthy
   
   user-db:
     image: postgres:17
@@ -45,7 +58,6 @@ services:
     volumes:
       - pg_game_data:/var/lib/postgresql/data
 
-
   user-service:
     build:
       context: ./User_Service
@@ -60,6 +72,7 @@ services:
       interval: 3s
       timeout: 5s
       retries: 5
+    stop_grace_period: 2s
     depends_on:
       user-db:
         condition: service_healthy
@@ -78,6 +91,7 @@ services:
       interval: 3s
       timeout: 5s
       retries: 5
+    stop_grace_period: 2s
     depends_on:
       game-db:
         condition: service_healthy

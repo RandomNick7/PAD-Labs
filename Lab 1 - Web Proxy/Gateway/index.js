@@ -1,5 +1,5 @@
 const express = require('express');
-const axios = require('axios');
+const redis = require('redis');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
@@ -36,12 +36,19 @@ const gamePackageDef = protoLoader.loadSync(GAME_PROTO_PATH, loaderOptions);
 const gameRouter = grpc.loadPackageDefinition(gamePackageDef).game_routes;
 const gameClient = new gameRouter.GameRoutes(`${game_addr}:${game_port}`, grpc.credentials.createInsecure())
 
+const cacheClient = redis.createClient({url: "redis://redis:6379"})
+let cacheConnected = false
+
+
 function countPings(req, res, next){
   const current_time = Date.now()
   const time_window = 5000
 
   // Every X seconds, clear the count
   if(current_time - timestamp > time_window){
+    if(ping_count > ping_limit){
+      console.log(`CAUTION: High number of requests! ${ping_count} over the last ${time_window/1000} seconds`)
+    }
     ping_count = 0
     timestamp = current_time
   }
@@ -49,11 +56,10 @@ function countPings(req, res, next){
   // Make sure to count the ping that triggered this function too
   ping_count++
 
-  // If limit is exceeded, write something somewhere
-  if(ping_count > ping_limit){
-    console.log(`CAUTION: High number of requests! ${ping_count} over the last ${time_window/1000} seconds`)
-    // If a hard limit is needed -> return res.status(429).send("Too Many Requests");
-  }
+  // If a hard limit is needed:
+  // if(ping_count > ping_limit){
+  //   return res.status(429).send("Too Many Requests");
+  // }
   next();
 }
 
@@ -82,6 +88,8 @@ async function asyncWrapper(client, method, req){
 }
 
 
+// VVV   ROUTES   VVV
+
 app.post('/login', countPings, async (req, res) => {
   try{
     response = await asyncWrapper(userClient, "tryLogin", req)
@@ -98,9 +106,21 @@ app.post('/login', countPings, async (req, res) => {
 
 app.get('/lobby', countPings, async(req, res) => {
   try{
-    response = await asyncWrapper(gameClient, "getLobbies", req)
+    if(!cacheConnected){
+      await cacheClient.connect()
+      cacheConnected = true
+    }
+
+    // response = JSON.parse(await cacheClient.get("lobbies"))
+    response = null
+    if(!response){
+      response = await asyncWrapper(gameClient, "getLobbies", req)
+      await cacheClient.set("lobbies", JSON.stringify(response))
+    }
+
     res.status(200).json({"data": response})
   }catch(error){
+    console.log(error)
     if(response["status"] == 408){
       res.status(408).json({"data": response})
     }else{
