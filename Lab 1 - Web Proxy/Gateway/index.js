@@ -111,8 +111,7 @@ app.get('/lobby', countPings, async(req, res) => {
       cacheConnected = true
     }
 
-    // response = JSON.parse(await cacheClient.get("lobbies"))
-    response = null
+    response = JSON.parse(await cacheClient.get("lobbies"))
     if(!response){
       response = await asyncWrapper(gameClient, "getLobbies", req)
       await cacheClient.set("lobbies", JSON.stringify(response))
