@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package game_routes;
+
+service GameRoutes{
+    rpc getLobbies(Empty) returns (LobbyList);
+}
+
+message Empty{}
+
+message LobbyInfo{
+    string name = 1;
+    int32 currMembers = 2;
+    int32 maxMembers = 3;
+}
+
+message LobbyList{
+    repeated LobbyInfo lobbies=1;
+}

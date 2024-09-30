@@ -6,17 +6,20 @@ const protoLoader = require('@grpc/proto-loader');
 const self_port = 6969
 const user_addr = "user-service"
 const user_port = 9000
+const game_addr = "game-service"
+const game_port = 7000
+
 const timeout_max = 10000 //ms
 const ping_limit = 5
 
-let timed_out = false
 let timestamp = Date.now()
 let ping_count = 0
 
 const app = express()
 app.use(express.json())
 
-const PROTO_PATH = __dirname + '/protos/user_routes.proto';
+const USER_PROTO_PATH = __dirname + '/protos/user_routes.proto';
+const GAME_PROTO_PATH = __dirname + '/protos/game_routes.proto';
 const loaderOptions = {
   keepCase: true,
   longs: String,
@@ -25,9 +28,13 @@ const loaderOptions = {
   oneofs: true
 }
 
-const packageDef = protoLoader.loadSync(PROTO_PATH, loaderOptions);
-const userRouter = grpc.loadPackageDefinition(packageDef).user_routes;
-const user_client = new userRouter.UserRoutes(`${user_addr}:${user_port}`, grpc.credentials.createInsecure())
+const userPackageDef = protoLoader.loadSync(USER_PROTO_PATH, loaderOptions);
+const userRouter = grpc.loadPackageDefinition(userPackageDef).user_routes;
+const userClient = new userRouter.UserRoutes(`${user_addr}:${user_port}`, grpc.credentials.createInsecure())
+
+const gamePackageDef = protoLoader.loadSync(GAME_PROTO_PATH, loaderOptions);
+const gameRouter = grpc.loadPackageDefinition(gamePackageDef).game_routes;
+const gameClient = new gameRouter.GameRoutes(`${game_addr}:${game_port}`, grpc.credentials.createInsecure())
 
 function countPings(req, res, next){
   const current_time = Date.now()
@@ -63,10 +70,10 @@ async function asyncWrapper(client, method, req){
     client[method](req.body, {deadline: deadline}, (err, response) => {
       if(err){
         if (err.code == grpc.status.DEADLINE_EXCEEDED){
-          timed_out = true
-          resolve("Request Timeout")
+          resolve({status: 408, err:"Request Timeout"})
+        }else{
+          resolve(err)
         }
-        resolve(err)
       }else{
         resolve(response)
       }
@@ -77,12 +84,24 @@ async function asyncWrapper(client, method, req){
 
 app.post('/login', countPings, async (req, res) => {
   try{
-    console.log("Message sent!")
-    timed_out = false
-    response = await asyncWrapper(user_client, "tryLogin", req)
+    response = await asyncWrapper(userClient, "tryLogin", req)
     res.status(response["status"]).json({"data": response})
   }catch(error){
-    if(timed_out){
+    if(response["status"] == 408){
+      res.status(408).json({"data": response})
+    }else{
+      res.status(500).json({error: "Internal server error! " + error})
+    }
+  }
+})
+
+
+app.get('/lobby', countPings, async(req, res) => {
+  try{
+    response = await asyncWrapper(gameClient, "getLobbies", req)
+    res.status(200).json({"data": response})
+  }catch(error){
+    if(response["status"] == 408){
       res.status(408).json({"data": response})
     }else{
       res.status(500).json({error: "Internal server error! " + error})

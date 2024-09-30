@@ -35,7 +35,6 @@ class UserService(pb2_grpc.UserRoutesServicer):
         New users are created only if username doesn't already exist in the DB
         Existing users must send a request with matching user/pass to receive a JWT
         """
-        logger.info("Message received!")
         result = {}
         
         query = "SELECT username, password FROM user_credentials WHERE username=%s"
@@ -65,7 +64,6 @@ class UserService(pb2_grpc.UserRoutesServicer):
                 result = {"status": 404}
 
         sleep(9)
-        logger.info("Message replied!")
 
         return pb2.LoginConfirm(**result)
 

@@ -16,18 +16,35 @@ services:
   user-db:
     image: postgres:17
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: user_data
       POSTGRES_USER: su_user
-      POSTGRES_PASSWORD: secret_pass
+      POSTGRES_PASSWORD: secret_pass_user
     healthcheck:
       test: pg_isready -U su_user -d user_data
       interval: 3s
       timeout: 5s
       retries: 5
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg_user_data:/var/lib/postgresql/data
+
+  game-db:
+    image: postgres:17
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: game_data
+      POSTGRES_USER: su_game
+      POSTGRES_PASSWORD: secret_pass_game
+    healthcheck:
+      test: pg_isready -U su_game -d game_data
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pg_game_data:/var/lib/postgresql/data
+
 
   user-service:
     build:
@@ -36,8 +53,8 @@ services:
     ports:
       - "9000:9000"
     environment:
-      DATABASE_URL: postgres://su_user:secret_pass@user-db:5432/user_data
-      JWT_SECRET: user_token_secret
+      DATABASE_URL: postgres://su_user:secret_pass_user@user-db:5432/user_data
+      JWT_SECRET: token_secret
     healthcheck:
       test: grpc_health_probe -addr=:9000
       interval: 3s
@@ -47,5 +64,24 @@ services:
       user-db:
         condition: service_healthy
 
+  game-service:
+    build:
+      context: ./Game_Service
+      dockerfile: Dockerfile
+    ports:
+      - "7000:7000"
+    environment:
+      DATABASE_URL: postgres://su_game:secret_pass_game@game-db:5432/game_data
+      JWT_SECRET: token_secret
+    healthcheck:
+      test: grpc_health_probe -addr=:7000
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      game-db:
+        condition: service_healthy
+
 volumes:
-  pg_data:
+  pg_user_data:
+  pg_game_data:

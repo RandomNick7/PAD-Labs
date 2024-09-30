@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import user_routes_pb2 as user__routes__pb2
+import game_routes_pb2 as game__routes__pb2
 
 GRPC_GENERATED_VERSION = '1.66.2'
 GRPC_VERSION = grpc.__version__
@@ -18,14 +18,14 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in user_routes_pb2_grpc.py depends on'
+        + f' but the generated code in game_routes_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
     )
 
 
-class UserRoutesStub(object):
+class GameRoutesStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -34,43 +34,43 @@ class UserRoutesStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.tryLogin = channel.unary_unary(
-                '/user_routes.UserRoutes/tryLogin',
-                request_serializer=user__routes__pb2.Credentials.SerializeToString,
-                response_deserializer=user__routes__pb2.LoginConfirm.FromString,
+        self.getLobbies = channel.unary_unary(
+                '/game_routes.GameRoutes/getLobbies',
+                request_serializer=game__routes__pb2.Empty.SerializeToString,
+                response_deserializer=game__routes__pb2.LobbyList.FromString,
                 _registered_method=True)
 
 
-class UserRoutesServicer(object):
+class GameRoutesServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def tryLogin(self, request, context):
+    def getLobbies(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_UserRoutesServicer_to_server(servicer, server):
+def add_GameRoutesServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'tryLogin': grpc.unary_unary_rpc_method_handler(
-                    servicer.tryLogin,
-                    request_deserializer=user__routes__pb2.Credentials.FromString,
-                    response_serializer=user__routes__pb2.LoginConfirm.SerializeToString,
+            'getLobbies': grpc.unary_unary_rpc_method_handler(
+                    servicer.getLobbies,
+                    request_deserializer=game__routes__pb2.Empty.FromString,
+                    response_serializer=game__routes__pb2.LobbyList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'user_routes.UserRoutes', rpc_method_handlers)
+            'game_routes.GameRoutes', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('user_routes.UserRoutes', rpc_method_handlers)
+    server.add_registered_method_handlers('game_routes.GameRoutes', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
-class UserRoutes(object):
+class GameRoutes(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def tryLogin(request,
+    def getLobbies(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,9 +83,9 @@ class UserRoutes(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/user_routes.UserRoutes/tryLogin',
-            user__routes__pb2.Credentials.SerializeToString,
-            user__routes__pb2.LoginConfirm.FromString,
+            '/game_routes.GameRoutes/getLobbies',
+            game__routes__pb2.Empty.SerializeToString,
+            game__routes__pb2.LobbyList.FromString,
             options,
             channel_credentials,
             insecure,
