@@ -59,9 +59,11 @@ app.post('/login', async (req, res) => {
 })
 
 
-
+app.get('/status', (req, res) => {
+  res.status(200).json({"status": "online"})
+})
 
 
 app.listen(self_port, () => {
-  console.log(`Example app listening on port ${self_port}`)
+  console.log(`App listening on port ${self_port}`)
 })

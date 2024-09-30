@@ -8,6 +8,8 @@ from concurrent import futures
 
 import user_routes_pb2 as pb2
 import user_routes_pb2_grpc as pb2_grpc
+import health_pb2 as hpb2
+import health_pb2_grpc as hpb2_grpc
 
 
 def generate_token(target_user):
@@ -18,6 +20,11 @@ def generate_token(target_user):
     }
     token = jwt.encode(payload, secret_key, algorithm='HS256')
     return token
+
+
+class HealthService(hpb2_grpc.HealthServicer):
+    def Check(self, request, context):
+        return hpb2.HealthCheckResponse(status = hpb2.HealthCheckResponse.SERVING)
 
 
 class UserService(pb2_grpc.UserRoutesServicer):
@@ -56,12 +63,20 @@ class UserService(pb2_grpc.UserRoutesServicer):
 
         return pb2.LoginConfirm(**result)
 
+
+def addAllServicers(server):
+    pb2_grpc.add_UserRoutesServicer_to_server(UserService(), server)
+    hpb2_grpc.add_HealthServicer_to_server(HealthService(), server)
+
+
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers = 1))
-    pb2_grpc.add_UserRoutesServicer_to_server(UserService(), server)
+    addAllServicers(server)
+
     server.add_insecure_port("[::]:9000")
-    logger.info("Server up and running!")
     server.start()
+
+    logger.info("Server up and running!")
     server.wait_for_termination()
 
 

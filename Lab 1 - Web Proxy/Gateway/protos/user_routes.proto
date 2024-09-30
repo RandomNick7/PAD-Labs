@@ -3,7 +3,7 @@ syntax = "proto3";
 package user_routes;
 
 service UserRoutes{
-    rpc tryLogin(Credentials) returns (LoginConfirm) {}
+    rpc tryLogin(Credentials) returns (LoginConfirm);
 }
 
 message Credentials{

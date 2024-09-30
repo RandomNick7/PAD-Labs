@@ -7,6 +7,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "6969:6969"
+    healthcheck:
+      test: curl --fail http://localhost:6969/status || exit 1
+      interval: 3s
+      timeout: 5s
+      retries: 5
   
   db:
     image: postgres:17
@@ -33,6 +38,11 @@ services:
     environment:
       DATABASE_URL: postgres://myuser:mypassword@db:5432/mydatabase
       JWT_SECRET: user_token_secret
+    healthcheck:
+      test: grpc_health_probe -addr=:9000
+      interval: 3s
+      timeout: 5s
+      retries: 5
     depends_on:
       db:
         condition: service_healthy
