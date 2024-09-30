@@ -13,6 +13,7 @@ import health_pb2_grpc as hpb2_grpc
 
 
 def generate_token(target_user):
+    """Generates a JWT token given a user"""
     secret_key = os.getenv('JWT_SECRET')
     payload = {
         "user_id": target_user[0],
@@ -29,10 +30,15 @@ class HealthService(hpb2_grpc.HealthServicer):
 
 class UserService(pb2_grpc.UserRoutesServicer):
     def tryLogin(self, request, context):
+        """Provides a JWT auth token and creates new users
+
+        New users are created only if username doesn't already exist in the DB
+        Existing users must send a request with matching user/pass to receive a JWT
+        """
         logger.info("Message received!")
         result = {}
         
-        query = "SELECT * FROM user_credentials WHERE username=%s"
+        query = "SELECT username, password FROM user_credentials WHERE username=%s"
         cursor.execute(query, (request.username,))
         target_user = cursor.fetchone()
         
@@ -55,7 +61,7 @@ class UserService(pb2_grpc.UserRoutesServicer):
                 token = generate_token(target_user)
                 result = {"status": 200, "token": token}
             else:
-                # User Not Found!
+                # Credential mismatch - User Not Found!
                 result = {"status": 404}
 
         sleep(9)

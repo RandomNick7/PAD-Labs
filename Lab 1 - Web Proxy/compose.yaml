@@ -13,16 +13,16 @@ services:
       timeout: 5s
       retries: 5
   
-  db:
+  user-db:
     image: postgres:17
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: user_data
+      POSTGRES_USER: su_user
+      POSTGRES_PASSWORD: secret_pass
     healthcheck:
-      test: pg_isready -U myuser -d mydatabase
+      test: pg_isready -U su_user -d user_data
       interval: 3s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
     ports:
       - "9000:9000"
     environment:
-      DATABASE_URL: postgres://myuser:mypassword@db:5432/mydatabase
+      DATABASE_URL: postgres://su_user:secret_pass@user-db:5432/user_data
       JWT_SECRET: user_token_secret
     healthcheck:
       test: grpc_health_probe -addr=:9000
@@ -44,7 +44,7 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
-      db:
+      user-db:
         condition: service_healthy
 
 volumes:
