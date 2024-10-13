@@ -1,22 +1,33 @@
 const express = require('express');
+const axios = require('axios')
+const Consul = require('consul');
 const redis = require('redis');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
-const self_port = 6969
-const user_addr = "user-service"
-const user_port = 9000
-const game_addr = "game-service"
-const game_port = 7000
+const self_port = 6969;
+const user_addr = "user-service";
+const user_port = 9000;
+const game_addr = "game-service";
+const game_port = 7000;
+const consul_addr = "consul";
+const consul_port = 8500;
+let consul_url = `http://${consul_addr}:${consul_port}`
 
-const timeout_max = 10000 //ms
-const ping_limit = 5
+const timeout_max = 10000; //ms
+const ping_limit = 5;
 
-let timestamp = Date.now()
-let ping_count = 0
+let ping_count = 0;
+let timestamp = Date.now();
+let service_list = [];
 
-const app = express()
-app.use(express.json())
+const app = express();
+const consul = new Consul({
+  host: consul_addr,
+  port: consul_port
+});
+
+app.use(express.json());
 
 const USER_PROTO_PATH = __dirname + '/protos/user_routes.proto';
 const GAME_PROTO_PATH = __dirname + '/protos/game_routes.proto';
@@ -26,18 +37,18 @@ const loaderOptions = {
   enums: String,
   defaults: true,
   oneofs: true
-}
+};
 
 const userPackageDef = protoLoader.loadSync(USER_PROTO_PATH, loaderOptions);
 const userRouter = grpc.loadPackageDefinition(userPackageDef).user_routes;
-const userClient = new userRouter.UserRoutes(`${user_addr}:${user_port}`, grpc.credentials.createInsecure())
+const userClient = new userRouter.UserRoutes(`${user_addr}:${user_port}`, grpc.credentials.createInsecure());
 
 const gamePackageDef = protoLoader.loadSync(GAME_PROTO_PATH, loaderOptions);
 const gameRouter = grpc.loadPackageDefinition(gamePackageDef).game_routes;
-const gameClient = new gameRouter.GameRoutes(`${game_addr}:${game_port}`, grpc.credentials.createInsecure())
+const gameClient = new gameRouter.GameRoutes(`${game_addr}:${game_port}`, grpc.credentials.createInsecure());
 
-const cacheClient = redis.createClient({url: "redis://redis:6379"})
-let cacheConnected = false
+const cacheClient = redis.createClient({url: "redis://redis:6379"});
+let cacheConnected = false;
 
 
 function countPings(req, res, next){
@@ -88,6 +99,39 @@ async function asyncWrapper(client, method, req){
 }
 
 
+async function registerSelf(){
+  let serviceDefinition = {
+    "ID": "Gateway",
+    "Name": "Gateway",
+    "Address": "localhost",
+    "Port": self_port,
+    "Tags": ['nodejs']
+  };
+
+  try{
+    await axios.put(`${consul_url}/v1/agent/service/register`, serviceDefinition);
+  }catch(err){
+    console.log("Error registering service! ", err.message);
+  }
+}
+
+
+process.on("SIGINT", async() => {
+  try{
+    // Deregister all known services
+    for(let service of service_list){
+      await axios.put(`${consul_url}/v1/agent/service/deregister/${service}`)
+    }
+    // Deregister self afterwards
+    await axios.put(`${consul_url}/v1/agent/service/deregister/Gateway`);
+  }catch(err){
+    console.log("Error deregistering service! ", err.message);
+  }finally{
+    process.exit();
+  }
+})
+
+
 // VVV   ROUTES   VVV
 
 app.post('/login', countPings, async (req, res) => {
@@ -129,11 +173,42 @@ app.get('/lobby', countPings, async(req, res) => {
 })
 
 
+app.get('/services', async (req, res) => {
+  try{
+    let services = await axios.get(`${consul_url}/v1/catalog/services`);
+    service_list = Object.keys(services.data)
+    res.status(200).json(services.data)
+  }catch(error){
+    res.status(500).json({error: "Internal server error! " + error})
+  }
+})
+
+
+app.get('/service-info/:serviceName', async (req, res) => {
+  const serviceName = req.params.serviceName;
+  try{
+    services = await consul.catalog.service.nodes(serviceName)
+    
+    let serviceInfo = services.map(instance => ({
+        id: instance.ID,
+        address: instance.Address,
+        port: instance.ServicePort,
+        tags: instance.ServiceTags,
+    }));
+
+    res.status(200).json(serviceInfo);
+  }catch (error){
+    res.status(500).send(error);
+  }
+});
+
+
 app.get('/status', (req, res) => {
   res.status(200).json({"status": "online"})
 })
 
 
-app.listen(self_port, () => {
+app.listen(self_port, async () => {
   console.log(`App listening on port ${self_port}`)
+  await registerSelf();
 })

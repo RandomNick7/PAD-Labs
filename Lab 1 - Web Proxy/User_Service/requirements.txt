@@ -2,3 +2,5 @@ grpcio
 grpcio-tools
 psycopg2-binary
 PyJWT
+requests
+python-consul

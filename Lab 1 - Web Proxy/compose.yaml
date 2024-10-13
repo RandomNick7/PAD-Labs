@@ -1,6 +1,17 @@
 name: game_deployement
 
 services:
+  consul:
+    image: hashicorp/consul:1.19
+    ports:
+      - "8500:8500"
+    command: agent -dev -client=0.0.0.0
+    healthcheck:
+      test: curl --fail http://localhost:8500/v1/status/leader
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7
     command: redis-server
@@ -17,13 +28,15 @@ services:
     ports:
       - "6969:6969"
     healthcheck:
-      test: curl --fail http://localhost:6969/status || exit 1
+      test: curl --fail http://localhost:6969/status
       interval: 3s
       timeout: 5s
       retries: 5
     stop_grace_period: 2s
     depends_on:
       redis:
+        condition: service_healthy
+      consul:
         condition: service_healthy
   
   user-db:
@@ -62,8 +75,11 @@ services:
     build:
       context: ./User_Service
       dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 3
     ports:
-      - "9000:9000"
+      - "9000"
     environment:
       DATABASE_URL: postgres://su_user:secret_pass_user@user-db:5432/user_data
       JWT_SECRET: token_secret
@@ -76,13 +92,18 @@ services:
     depends_on:
       user-db:
         condition: service_healthy
+      consul:
+        condition: service_healthy
 
   game-service:
     build:
       context: ./Game_Service
       dockerfile: Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 3
     ports:
-      - "7000:7000"
+      - "7000"
     environment:
       DATABASE_URL: postgres://su_game:secret_pass_game@game-db:5432/game_data
       JWT_SECRET: token_secret
@@ -94,6 +115,8 @@ services:
     stop_grace_period: 2s
     depends_on:
       game-db:
+        condition: service_healthy
+      consul:
         condition: service_healthy
 
 volumes:

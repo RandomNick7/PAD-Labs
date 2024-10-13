@@ -1,15 +1,24 @@
 import os
 import grpc
+import requests
 import logging
+import signal
+import atexit
 import psycopg2
 import jwt
 from time import sleep
 from concurrent import futures
+from consul import Consul
 
 import user_routes_pb2 as pb2
 import user_routes_pb2_grpc as pb2_grpc
 import health_pb2 as hpb2
 import health_pb2_grpc as hpb2_grpc
+
+
+consul_addr = "consul"
+consul_port = 8500
+INSTANCE_ID = os.environ.get("HOSTNAME")
 
 
 def generate_token(target_user):
@@ -63,9 +72,30 @@ class UserService(pb2_grpc.UserRoutesServicer):
                 # Credential mismatch - User Not Found!
                 result = {"status": 404}
 
-        sleep(9)
+        sleep(4)
 
         return pb2.LoginConfirm(**result)
+
+
+def registerSelf():
+    service_definition = {
+        "ID": INSTANCE_ID,
+        "Name": f"User_Service-{INSTANCE_ID}",
+        "Address": "localhost",
+        "Port": 9000,
+        "Tags": ["python", "user-service"]
+    }
+
+    response = requests.put(f"http://{consul_addr}:{consul_port}/v1/agent/service/register", json=service_definition)
+
+    if response.status_code == 200:
+        logger.info("Registered a User Service successfully!")
+    else:
+        logger.info("Error registering service!")
+
+
+def deregisterSelf():
+    consul.agent.service.deregister(f"User_Service-{INSTANCE_ID}")
 
 
 def addAllServicers(server):
@@ -94,6 +124,11 @@ def check_db_tables():
         (id SERIAL PRIMARY KEY, username TEXT, password TEXT)")
 
 
+def signalHandler(signal, frame):
+    deregisterSelf()
+    exit(0)
+
+
 if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
@@ -102,6 +137,11 @@ if __name__ == '__main__':
     conn.autocommit = True
     cursor = conn.cursor()
     check_db_tables()
+
+    registerSelf()
+    # Deregister self if service is shut down
+    signal.signal(signal.SIGINT, signalHandler)
+    atexit.register(deregisterSelf)
 
     serve()
 
