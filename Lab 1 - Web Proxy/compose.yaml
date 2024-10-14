@@ -5,7 +5,7 @@ services:
     image: hashicorp/consul:1.19
     ports:
       - "8500:8500"
-    command: agent -dev -client=0.0.0.0
+    command: agent -dev -log-level=info -client=0.0.0.0
     healthcheck:
       test: curl --fail http://localhost:8500/v1/status/leader
       interval: 3s

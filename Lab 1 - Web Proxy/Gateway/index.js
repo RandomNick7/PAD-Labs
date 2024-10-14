@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios')
+const opossum = require('opossum');
 const Consul = require('consul');
 const redis = require('redis');
 const grpc = require('@grpc/grpc-js');
@@ -11,12 +12,13 @@ const consul_addr = "consul";
 const consul_port = 8500;
 let consul_url = `http://${consul_addr}:${consul_port}`
 
-const timeout_max = 5000; //ms
+const timeout_max = 3000; //ms
 const ping_limit = 5;
 
 let ping_count = 0;
 let timestamp = Date.now();
-let service_list = [];
+let user_services = [];
+let game_services = [];
 
 const app = express();
 const consul = new Consul({
@@ -47,6 +49,34 @@ const gameClient = new gameRouter.GameRoutes(`${gRPC_URL}`, grpc.credentials.cre
 const cacheClient = redis.createClient({url: "redis://redis:6379"});
 let cacheConnected = false;
 
+const userCircuitBreaker = new opossum(userAsyncWrapper, {
+  errorThresholdPercentage: 25,
+  timeout: timeout_max,
+  rollingCountTimeout: timeout_max * 3.5, // Count the errors every few seconds instead
+  resetTimeout: 10000,                    // Try again after 10s
+  errorFilter: (err) => {
+    if (err.status >= 500 || err.status == 408){
+      return true
+    }else{
+      return false
+    }
+  }
+})
+
+
+const gameCircuitBreaker = new opossum(gameAsyncWrapper, {
+  errorThresholdPercentage: 25,
+  rollingCountTimeout: timeout_max * 3.5, // Count the errors every few seconds instead
+  resetTimeout: 10000,                    // Try again after 10s
+  errorFilter: (err) => {
+    if (err.status >= 500 || err.status == 408){
+      return true
+    }else{
+      return false
+    }
+  }
+})
+
 
 function countPings(req, res, next){
   const current_time = Date.now()
@@ -72,7 +102,32 @@ function countPings(req, res, next){
 }
 
 
-async function asyncWrapper(client, method, req){
+async function userAsyncWrapper(method, req){
+  /**
+   * Async wrapper for user client gRPC calls
+   * 
+   * Used for making the gateway actually wait for the Service to be done
+   * Separated from the other wrapper to trip separate circuit breakers
+   * NOTE: Promise is always fulfilled, "reject" is redundant right now
+   */
+  return new Promise((resolve, reject) => {
+    deadline = new Date(Date.now() + timeout_max)
+    userClient[method](req.body, {deadline: deadline}, (err, response) => {
+      if(err){
+        if (err.code == grpc.status.DEADLINE_EXCEEDED){
+          reject({status: 408, err:"Request Timeout"})
+        }else{
+          reject(err)
+        }
+      }else{
+        resolve(response)
+      }
+    })
+  })
+}
+
+
+async function gameAsyncWrapper(method, req){
   /**
    * Async wrapper for all gRPC calls
    * 
@@ -81,12 +136,12 @@ async function asyncWrapper(client, method, req){
    */
   return new Promise((resolve, reject) => {
     deadline = new Date(Date.now() + timeout_max)
-    client[method](req.body, {deadline: deadline}, (err, response) => {
+    gameClient[method](req.body, {deadline: deadline}, (err, response) => {
       if(err){
         if (err.code == grpc.status.DEADLINE_EXCEEDED){
-          resolve({status: 408, err:"Request Timeout"})
+          reject({status: 408, err:"Request Timeout"})
         }else{
-          resolve(err)
+          reject(err)
         }
       }else{
         resolve(response)
@@ -116,9 +171,12 @@ async function registerSelf(){
 process.on("SIGINT", async() => {
   try{
     // Deregister all known services
-    for(let service of service_list){
-      await axios.put(`${consul_url}/v1/agent/service/deregister/${service}`)
-    }
+  for(let service of user_services){
+    await axios.put(`${consul_url}/v1/agent/service/deregister/${service}`)
+  }
+  for(let service of game_services){
+    await axios.put(`${consul_url}/v1/agent/service/deregister/${service}`)
+  }
     // Deregister self afterwards
     await axios.put(`${consul_url}/v1/agent/service/deregister/Gateway`);
   }catch(err){
@@ -129,17 +187,86 @@ process.on("SIGINT", async() => {
 })
 
 
+userCircuitBreaker.on("open", async () => {
+  console.log("Opened breaker!")
+  for(let service of user_services){
+    let id = service.slice(service.lastIndexOf("-") + 1)
+    await axios.put(`${consul_url}/v1/agent/service/deregister/${id}`)
+  }
+})
+
+
+userCircuitBreaker.on("close", async () => {
+  console.log("Closed breaker!")
+  // Normally, the containers would have restarted and the services would have re-registered
+  // Since the containers don't crash nor restart, we'll pretend they've restarted anyway
+  for(let service of user_services){
+    let id = service.slice(service.lastIndexOf("-") + 1)
+    let serviceDefinition = {
+      "ID": id,
+      "Name": service
+    };
+    await axios.put(`${consul_url}/v1/agent/service/register`, serviceDefinition);
+  }
+})
+
+
+gameCircuitBreaker.on("open", async () => {
+  console.log("Opened breaker!")
+  for(let service of game_services){
+    let id = service.slice(service.lastIndexOf("-") + 1)
+    await axios.put(`${consul_url}/v1/agent/service/deregister/${id}`)
+  }
+})
+
+
+gameCircuitBreaker.on("close", async () => {
+  console.log("Closed breaker!")
+  // Normally, the containers would have restarted and the services would have re-registered
+  // Since the containers don't crash nor restart, we'll pretend they've restarted anyway
+  for(let service of game_services){
+    let id = service.slice(service.lastIndexOf("-") + 1)
+    let serviceDefinition = {
+      "ID": id,
+      "Name": service
+    };
+    await axios.put(`${consul_url}/v1/agent/service/register`, serviceDefinition);
+  }
+})
+
+
+// Refresh list of services every 5s from Consul
+setInterval(async () => {
+  try{
+    let services = await axios.get(`${consul_url}/v1/catalog/services`);
+    let service_list = Object.keys(services.data)
+    if(userCircuitBreaker.closed){
+      user_services = service_list.filter((s) => s.startsWith("user"))
+    }
+    if(gameCircuitBreaker.closed){
+      game_services = service_list.filter((s) => s.startsWith("game"))
+    }
+  }catch{}
+}, 5000);
+
+
 // VVV   ROUTES   VVV
 
 app.post('/login', countPings, async (req, res) => {
+  if(userCircuitBreaker.opened){
+    return res.status(503).json({error: "Service temporarily unavailable. Try again later"})
+  }
+
   try{
-    response = await asyncWrapper(userClient, "tryLogin", req)
+    response = await userCircuitBreaker.fire("tryLogin", req)
     res.status(response["status"]).json({"data": response})
   }catch(error){
-    if(response["status"] == 408){
-      res.status(408).json({"data": response})
+    if(error.code == "ETIMEDOUT"){
+      res.status(408).json({error: "Request Timed Out!"})
+    }else if(error.code =="EOPENBREAKER"){
+      res.status(503).json({error: "Service temporarily unavailable. Try again later"})
     }else{
-      res.status(500).json({error: "Internal server error! " + error})
+      res.status(500).json({error: "Internal server error!", log: error})
     }
   }
 })
@@ -154,17 +281,22 @@ app.get('/lobby', countPings, async(req, res) => {
 
     response = JSON.parse(await cacheClient.get("lobbies"))
     if(!response){
-      response = await asyncWrapper(gameClient, "getLobbies", req)
+      if(gameCircuitBreaker.opened){
+        return res.status(503).json({error: "Service temporarily unavailable. Try again later"})
+      }
+    
+      response = await gameCircuitBreaker.fire("getLobbies", req)
       await cacheClient.set("lobbies", JSON.stringify(response))
     }
 
     res.status(200).json({"data": response})
   }catch(error){
-    console.log(error)
-    if(response["status"] == 408){
-      res.status(408).json({"data": response})
+    if(error.code == "ETIMEDOUT"){
+      res.status(408).json({error: "Request Timed Out!"})
+    }else if(error.code =="EOPENBREAKER"){
+      res.status(503).json({error: "Service temporarily unavailable. Try again later"})
     }else{
-      res.status(500).json({error: "Internal server error! " + error})
+      res.status(500).json({error: "Internal server error! " + error.message})
     }
   }
 })
@@ -173,7 +305,6 @@ app.get('/lobby', countPings, async(req, res) => {
 app.get('/services', async (req, res) => {
   try{
     let services = await axios.get(`${consul_url}/v1/catalog/services`);
-    service_list = Object.keys(services.data)
     res.status(200).json(services.data)
   }catch(error){
     res.status(500).json({error: "Internal server error! " + error})
