@@ -16,11 +16,6 @@ import health_pb2 as hpb2
 import health_pb2_grpc as hpb2_grpc
 
 
-consul_addr = "consul"
-consul_port = 8500
-INSTANCE_ID = os.environ.get("HOSTNAME")
-
-
 def generate_token(target_user):
     """Generates a JWT token given a user"""
     secret_key = os.getenv('JWT_SECRET')
@@ -45,6 +40,7 @@ class UserService(pb2_grpc.UserRoutesServicer):
         Existing users must send a request with matching user/pass to receive a JWT
         """
         result = {}
+        logger.info("Request received!")
         
         query = "SELECT username, password FROM user_credentials WHERE username=%s"
         cursor.execute(query, (request.username,))
@@ -80,14 +76,12 @@ class UserService(pb2_grpc.UserRoutesServicer):
 def registerSelf():
     service_definition = {
         "ID": INSTANCE_ID,
-        "Name": f"User_Service-{INSTANCE_ID}",
-        "Address": "localhost",
-        "Port": 9000,
-        "Tags": ["python", "user-service"]
+        "Name": f"user-service-{INSTANCE_ID}"
     }
 
     response = requests.put(f"http://{consul_addr}:{consul_port}/v1/agent/service/register", json=service_definition)
 
+    logger.info(f"Target port: {TEST_PORT}")
     if response.status_code == 200:
         logger.info("Registered a User Service successfully!")
     else:
@@ -95,7 +89,7 @@ def registerSelf():
 
 
 def deregisterSelf():
-    consul.agent.service.deregister(f"User_Service-{INSTANCE_ID}")
+    consul.agent.service.deregister(INSTANCE_ID)
 
 
 def addAllServicers(server):
@@ -126,10 +120,16 @@ def check_db_tables():
 
 def signalHandler(signal, frame):
     deregisterSelf()
+    logger.info("Deregistered a User Service")
     exit(0)
 
 
 if __name__ == '__main__':
+    consul_addr = "consul"
+    consul_port = 8500
+    INSTANCE_ID = os.environ.get("HOSTNAME")
+    TEST_PORT = os.environ.get("HOST_PORT")
+
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
 
@@ -141,6 +141,7 @@ if __name__ == '__main__':
     registerSelf()
     # Deregister self if service is shut down
     signal.signal(signal.SIGINT, signalHandler)
+    signal.signal(signal.SIGTERM, signalHandler)
     atexit.register(deregisterSelf)
 
     serve()

@@ -6,15 +6,12 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
 const self_port = 6969;
-const user_addr = "user-service";
-const user_port = 9000;
-const game_addr = "game-service";
-const game_port = 7000;
+const gRPC_URL = "nginx:80"
 const consul_addr = "consul";
 const consul_port = 8500;
 let consul_url = `http://${consul_addr}:${consul_port}`
 
-const timeout_max = 10000; //ms
+const timeout_max = 5000; //ms
 const ping_limit = 5;
 
 let ping_count = 0;
@@ -41,11 +38,11 @@ const loaderOptions = {
 
 const userPackageDef = protoLoader.loadSync(USER_PROTO_PATH, loaderOptions);
 const userRouter = grpc.loadPackageDefinition(userPackageDef).user_routes;
-const userClient = new userRouter.UserRoutes(`${user_addr}:${user_port}`, grpc.credentials.createInsecure());
+const userClient = new userRouter.UserRoutes(`${gRPC_URL}`, grpc.credentials.createInsecure());
 
 const gamePackageDef = protoLoader.loadSync(GAME_PROTO_PATH, loaderOptions);
 const gameRouter = grpc.loadPackageDefinition(gamePackageDef).game_routes;
-const gameClient = new gameRouter.GameRoutes(`${game_addr}:${game_port}`, grpc.credentials.createInsecure());
+const gameClient = new gameRouter.GameRoutes(`${gRPC_URL}`, grpc.credentials.createInsecure());
 
 const cacheClient = redis.createClient({url: "redis://redis:6379"});
 let cacheConnected = false;

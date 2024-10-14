@@ -16,11 +16,6 @@ import health_pb2 as hpb2
 import health_pb2_grpc as hpb2_grpc
 
 
-consul_addr = "consul"
-consul_port = 8500
-INSTANCE_ID = os.environ.get("HOSTNAME")
-
-
 class HealthService(hpb2_grpc.HealthServicer):
     def Check(self, request, context):
         return hpb2.HealthCheckResponse(status = hpb2.HealthCheckResponse.SERVING)
@@ -49,10 +44,7 @@ class GameService(pb2_grpc.GameRoutesServicer):
 def registerSelf():
     service_definition = {
         "ID": INSTANCE_ID,
-        "Name": f"Game_Service-{INSTANCE_ID}",
-        "Address": "localhost",
-        "Port": 7000,
-        "Tags": ["python", "game-service"]
+        "Name": f"game-service-{INSTANCE_ID}"
     }
 
     response = requests.put(f"http://{consul_addr}:{consul_port}/v1/agent/service/register", json=service_definition)
@@ -64,7 +56,7 @@ def registerSelf():
 
 
 def deregisterSelf():
-    consul.agent.service.deregister(f"Game_Service-{INSTANCE_ID}")
+    consul.agent.service.deregister(INSTANCE_ID)
 
 
 def addAllServicers(server):
@@ -95,10 +87,15 @@ def check_db_tables():
 
 def signalHandler(signal, frame):
     deregisterSelf()
+    logger.info("Deregistered a Game Service")
     exit(0)
 
 
 if __name__ == '__main__':
+    consul_addr = "consul"
+    consul_port = 8500
+    INSTANCE_ID = os.environ.get("HOSTNAME")
+
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
 
@@ -110,6 +107,7 @@ if __name__ == '__main__':
     registerSelf()
     # Deregister self if service is shut down
     signal.signal(signal.SIGINT, signalHandler)
+    signal.signal(signal.SIGTERM, signalHandler)
     atexit.register(deregisterSelf)
 
     serve()
