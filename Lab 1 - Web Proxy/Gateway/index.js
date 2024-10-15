@@ -1,5 +1,5 @@
 const express = require('express');
-const axios = require('axios')
+const axios = require('axios');
 const opossum = require('opossum');
 const Consul = require('consul');
 const redis = require('redis');
@@ -7,7 +7,7 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
 const self_port = 6969;
-const gRPC_URL = "nginx:80"
+const NGINX_URL = "nginx:80"
 const consul_addr = "consul";
 const consul_port = 8500;
 let consul_url = `http://${consul_addr}:${consul_port}`
@@ -40,11 +40,11 @@ const loaderOptions = {
 
 const userPackageDef = protoLoader.loadSync(USER_PROTO_PATH, loaderOptions);
 const userRouter = grpc.loadPackageDefinition(userPackageDef).user_routes;
-const userClient = new userRouter.UserRoutes(`${gRPC_URL}`, grpc.credentials.createInsecure());
+const userClient = new userRouter.UserRoutes(`${NGINX_URL}`, grpc.credentials.createInsecure());
 
 const gamePackageDef = protoLoader.loadSync(GAME_PROTO_PATH, loaderOptions);
 const gameRouter = grpc.loadPackageDefinition(gamePackageDef).game_routes;
-const gameClient = new gameRouter.GameRoutes(`${gRPC_URL}`, grpc.credentials.createInsecure());
+const gameClient = new gameRouter.GameRoutes(`${NGINX_URL}`, grpc.credentials.createInsecure());
 
 const cacheClient = redis.createClient({url: "redis://redis:6379"});
 let cacheConnected = false;
@@ -333,6 +333,15 @@ app.get('/service-info/:serviceName', async (req, res) => {
 
 app.get('/status', (req, res) => {
   res.status(200).json({"status": "online"})
+})
+
+
+app.get('/ws/nginx', (req, res) => {
+  res.redirect("ws://nginx:80/ws");
+})
+
+app.get('/ws', (req, res) => {
+  res.redirect("ws://localhost:7500");
 })
 
 

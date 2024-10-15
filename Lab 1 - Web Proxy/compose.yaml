@@ -5,7 +5,7 @@ services:
     image: hashicorp/consul:1.19
     ports:
       - "8500:8500"
-    command: agent -dev -log-level=info -client=0.0.0.0
+    command: agent -dev -log-level=warn -client=0.0.0.0
     healthcheck:
       test: curl --fail http://localhost:8500/v1/status/leader
       interval: 3s
@@ -78,7 +78,7 @@ services:
     deploy:
       mode: replicated
       replicas: 3
-    expose:
+    ports:
       - "9000"
     restart: always
     environment:
@@ -96,15 +96,57 @@ services:
       consul:
         condition: service_healthy
 
-  game-service:
+  game-service1:
     build:
       context: ./Game_Service
       dockerfile: Dockerfile
-    deploy:
-      mode: replicated
-      replicas: 3
-    expose:
-      - "7000"
+    ports:
+      - "7000:7000"
+      - "7500:7500"
+    environment:
+      DATABASE_URL: postgres://su_game:secret_pass_game@game-db:5432/game_data
+      JWT_SECRET: token_secret
+    healthcheck:
+      test: grpc_health_probe -addr=:7000
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    stop_grace_period: 2s
+    depends_on:
+      game-db:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+
+  game-service2:
+    build:
+      context: ./Game_Service
+      dockerfile: Dockerfile
+    ports:
+      - "7001:7000"
+      - "7501:7500"
+    environment:
+      DATABASE_URL: postgres://su_game:secret_pass_game@game-db:5432/game_data
+      JWT_SECRET: token_secret
+    healthcheck:
+      test: grpc_health_probe -addr=:7000
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    stop_grace_period: 2s
+    depends_on:
+      game-db:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+        
+  game-service3:
+    build:
+      context: ./Game_Service
+      dockerfile: Dockerfile
+    ports:
+      - "7002:7000"
+      - "7502:7500"
     environment:
       DATABASE_URL: postgres://su_game:secret_pass_game@game-db:5432/game_data
       JWT_SECRET: token_secret
@@ -128,7 +170,9 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - user-service
-      - game-service
+      - game-service1
+      - game-service2
+      - game-service3
 
 volumes:
   pg_user_data:

@@ -6,9 +6,10 @@ import signal
 import atexit
 import psycopg2
 import jwt
+import asyncio
+import websockets
 from time import sleep
 from concurrent import futures
-from consul import Consul
 
 import game_routes_pb2 as pb2
 import game_routes_pb2_grpc as pb2_grpc
@@ -47,7 +48,7 @@ def registerSelf():
         "Name": f"game-service-{INSTANCE_ID}"
     }
 
-    response = requests.put(f"http://{consul_addr}:{consul_port}/v1/agent/service/register", json=service_definition)
+    response = requests.put(f"{consul_url}/v1/agent/service/register", json=service_definition)
 
     if response.status_code == 200:
         logger.info("Registered a Game Service successfully!")
@@ -56,7 +57,7 @@ def registerSelf():
 
 
 def deregisterSelf():
-    consul.agent.service.deregister(INSTANCE_ID)
+    requests.put(f"{consul_url}/v1/agent/service/deregister/{INSTANCE_ID}")
 
 
 def addAllServicers(server):
@@ -72,7 +73,7 @@ def serve():
     server.start()
 
     logger.info("Server up and running!")
-    server.wait_for_termination()
+    return server
 
 
 def check_db_tables():
@@ -91,9 +92,18 @@ def signalHandler(signal, frame):
     exit(0)
 
 
+async def process_websocket(websocket):
+    async for message in websocket:
+        logger.info(message)
+        await websocket.send(f"Echo: {message}")
+
+async def main():
+    async with websockets.serve(process_websocket, "0.0.0.0", 7500):
+        await asyncio.Future()
+
+
 if __name__ == '__main__':
-    consul_addr = "consul"
-    consul_port = 8500
+    consul_url = "http://consul:8500"
     INSTANCE_ID = os.environ.get("HOSTNAME")
 
     logger = logging.getLogger(__name__)
@@ -110,7 +120,9 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signalHandler)
     atexit.register(deregisterSelf)
 
-    serve()
+    grpcServer = serve()
+    asyncio.run(main())
+    grpcServer.wait_for_termination()
 
     cursor.close()
     conn.close()

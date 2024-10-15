@@ -81,7 +81,6 @@ def registerSelf():
 
     response = requests.put(f"http://{consul_addr}:{consul_port}/v1/agent/service/register", json=service_definition)
 
-    logger.info(f"Target port: {TEST_PORT}")
     if response.status_code == 200:
         logger.info("Registered a User Service successfully!")
     else:
@@ -128,7 +127,6 @@ if __name__ == '__main__':
     consul_addr = "consul"
     consul_port = 8500
     INSTANCE_ID = os.environ.get("HOSTNAME")
-    TEST_PORT = os.environ.get("HOST_PORT")
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
