@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package game_routes;
+
+service GameRoutes{
+    rpc getLobbies(Empty) returns (LobbyList);
+    rpc getLobby(LobbyID) returns (LobbyDetails);
+    rpc makeLobby(LobbyMakeInfo) returns (LobbyDetails);
+    rpc joinLobby(HybridID) returns (LobbyDetails);
+    rpc leaveLobby(HybridID) returns (Status);
+    rpc getGame(GameID) returns (Status);
+    //Placeholder Status value  ^ , return GameInfo with all nation, province & unit info
+    //Do that either via gRPC or when first opening WebSocket connection
+}
+
+message Empty{}
+
+message LobbyID{
+    int32 lobbyID = 1;
+}
+
+message LobbyMakeInfo{
+    int32 userID = 1;
+    string name = 2;
+    int32 maxCount = 3;
+}
+
+message HybridID{
+    int32 lobbyID = 1;
+    int32 userID = 2;
+}
+
+message LobbyDetails{
+    int32 status = 1;
+    string name = 2;
+    int32 currMembers = 3;
+    int32 maxMembers = 4;
+    repeated int32 players = 5;
+}
+
+message LobbyInfo{
+    string name = 1;
+    int32 currMembers = 2;
+    int32 maxMembers = 3;
+}
+
+message LobbyList{
+    int32 status = 1;
+    repeated LobbyInfo lobbies = 2;
+}
+
+message GameID{
+    int32 gameID = 1;
+}
+
+message Status{
+    int32 status = 1;
+}

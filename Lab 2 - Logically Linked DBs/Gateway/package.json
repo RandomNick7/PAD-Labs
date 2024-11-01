@@ -1,0 +1,22 @@
+{
+  "name": "gateway",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.2",
+    "@grpc/proto-loader": "^0.7.13",
+    "axios": "^1.7.7",
+    "express": "^4.21.1",
+    "http": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "opossum": "^8.3.0",
+    "ws": "^8.18.0"
+  }
+}

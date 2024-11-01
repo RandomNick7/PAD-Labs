@@ -1,0 +1,6 @@
+grpcio
+grpcio-tools
+psycopg2-binary
+requests
+websockets
+jsonschema
