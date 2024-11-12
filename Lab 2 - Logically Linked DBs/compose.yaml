@@ -9,7 +9,39 @@ services:
       interval: 3s
       timeout: 5s
       retries: 5
-  
+
+
+  prometheus:
+    image: prom/prometheus:v2.51.1
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - prometheus_data:/prometheus
+    depends_on:
+      gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      game-service:
+        condition: service_healthy
+
+
+  grafana:
+    image: grafana/grafana:10.4.12
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_LOG_LEVEL=silent
+      - GF_SECURITY_ADMIN_USER=user
+      - GF_SECURITY_ADMIN_PASSWORD=pass
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 
   service-discovery:
     build:
@@ -88,6 +120,7 @@ services:
       replicas: 3
     ports:
       - "9000"
+      - "9900"
     environment:
       SERVICE_DISCOVERY_URL: http://service-discovery:4444
       DATABASE_URL: postgres://su_user:secret_pass_user@user-db:5432/user_data
@@ -115,6 +148,7 @@ services:
     ports:
       - "7000"
       - "7500"
+      - "7700"
     environment:
       SERVICE_DISCOVERY_URL: http://service-discovery:4444
       DATABASE_URL: postgres://su_game:secret_pass_game@game-db:5432/game_data
@@ -134,3 +168,5 @@ services:
 volumes:
   pg_user_data:
   pg_game_data:
+  prometheus_data:
+  grafana_data:

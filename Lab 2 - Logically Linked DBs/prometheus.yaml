@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 2s
+
+scrape_configs:
+  - job_name: "gateway"
+    dns_sd_configs:
+      - names:
+        - gateway
+        type: A
+        port: 6969
+
+  - job_name: "user-service"
+    dns_sd_configs:
+      - names:
+        - user-service
+        type: A
+        port: 9900
+  
+  - job_name: "game-service"
+    dns_sd_configs:
+      - names:
+        - game-service
+        type: A
+        port: 7700

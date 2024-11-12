@@ -9,12 +9,15 @@ import psycopg2
 import websockets
 from time import sleep
 from concurrent import futures
+from prometheus_client import start_http_server, Counter
 
 import game_routes_pb2 as pb2
 import game_routes_pb2_grpc as pb2_grpc
 import health_pb2 as hpb2
 import health_pb2_grpc as hpb2_grpc
 
+
+request_counter = Counter("game_service_total_requests", "Total requests to the Game Service")
 
 def registerSelf():
     response = requests.post(f"{SERVICE_DISCOVERY_URL}/register", json = {f"game-service": INSTANCE_ID})
@@ -50,6 +53,8 @@ class GameService(pb2_grpc.GameRoutesServicer):
         query = "SELECT name, curr_members, max_members FROM lobby_tbl WHERE status!=0"
         cursor.execute(query)
 
+        request_counter.inc()
+
         lobby_list = cursor.fetchall()
         proto_lobbies = []
         for lobby in lobby_list:
@@ -66,6 +71,7 @@ class GameService(pb2_grpc.GameRoutesServicer):
         query = "SELECT name, curr_members, max_members FROM lobby_tbl WHERE status!=0 AND id=%s"
         cursor.execute(query, (request.lobbyID,))
         
+        request_counter.inc()
         lobby = cursor.fetchone()
         if lobby:
             result = {
@@ -83,6 +89,7 @@ class GameService(pb2_grpc.GameRoutesServicer):
     def makeLobby(self, request, context):
         query = "INSERT INTO lobby_tbl (name, curr_members, max_members, status) VALUES (%s, %s, %s, %s)"
         cursor.execute(query, (request.name, [request.userID], request.maxCount, 1))
+        request_counter.inc()
         result = {
             "status": 200,
             "currMembers": 1,
@@ -95,6 +102,7 @@ class GameService(pb2_grpc.GameRoutesServicer):
     def joinLobby(self, request, context):
         query = "SELECT curr_members, max_members FROM lobby_tbl WHERE status!=0 AND id=%s"
         cursor.execute(query, (request.lobbyID,))
+        request_counter.inc()
 
         lobby = cursor.fetchone()
         if lobby:
@@ -114,6 +122,7 @@ class GameService(pb2_grpc.GameRoutesServicer):
     def leaveLobby(self, request, context):
         query = "SELECT curr_members, max_members FROM lobby_tbl WHERE status!=0 AND id=%s"
         cursor.execute(query, (request.lobbyID,))
+        request_counter.inc()
 
         lobby = cursor.fetchone()
         if lobby:
@@ -183,6 +192,8 @@ if __name__ == '__main__':
 
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
+
+    start_http_server(7700)
 
     conn = psycopg2.connect(os.getenv('DATABASE_URL'))
     conn.autocommit = True

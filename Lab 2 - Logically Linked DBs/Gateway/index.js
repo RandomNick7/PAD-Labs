@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const opossum = require('opossum');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
+const prom_client = require('prom-client');
 
 
 let PORT = 6969;
@@ -17,16 +18,33 @@ let websocket_port = 7500;
 let service_discovery_url = process.env.SERVICE_DISCOVERY_URL;
 
 let ping_count = 0;
-let timestamp = Date.now();
+
 
 const timeout_max = 5000; //ms
+const ping_time_window = 5000
 const ping_limit = 5;
 
+const reroute_limit = 2;
+const error_limit = 3;
+
+// Express & Websocket setup
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
 const wss = new WebSocket.Server({server})
 
+// Prometheus logging setup
+const registry = new prom_client.Registry();
+const gauge = new prom_client.Gauge({
+  name: "Ping_Count",
+  help: "Number of pings received",
+  collect(){
+    this.set(ping_count)
+  }
+})
+registry.registerMetric(gauge)
+
+// Protobuf file setup
 const USER_PROTO_PATH = __dirname + '/protos/user_routes.proto';
 const GAME_PROTO_PATH = __dirname + '/protos/game_routes.proto';
 const loaderOptions = {
@@ -37,6 +55,7 @@ const loaderOptions = {
   oneofs: true
 };
 
+// gRPC client setup
 const userPackageDef = protoLoader.loadSync(USER_PROTO_PATH, loaderOptions);
 const userRouter = grpc.loadPackageDefinition(userPackageDef).user_routes;
 
@@ -65,7 +84,7 @@ function createCircuitBreaker(name){
    */
   const options = {
     name: name,
-    errorThresholdPercentage: 25,
+    errorThresholdPercentage: 25,           // TODO: Experiment with different thresholds
     timeout: timeout_max,
     rollingCountTimeout: timeout_max * 3.5, // Count the errors every few seconds instead
     resetTimeout: 10000,                    // Try again after 10s
@@ -178,41 +197,51 @@ async function RPC(req, res, service_name, method){
   /**
    * General-purpose function used for making calls to specific services
    */
-  let service = pickService(service_name)
+  let success = false
+  let reroute_count = 0
 
-  if(service != null){
-    service[2] += 1
-    try{
-      response = await service[0].fire(service[1], method, req)
-      res.status(response["status"]).json({body: response})
-    }catch(error){
-      if(error.code == "ETIMEDOUT"){
-        res.status(408).json({error: "Request Timed Out!"})
-      }else if(error.code =="EOPENBREAKER"){
-        res.status(503).json({error: "Service temporarily unavailable. Try again later"})
-      }else{
-        res.status(500).json({error: "Internal server error!", log: error})
+  while(reroute_count < reroute_limit && success == false){
+    let service = pickService(service_name)
+    // Pick an available service that wasn't chosen before
+    if(service != null){
+      service[2] += 1
+      let error_count = 0
+      while(error_count < error_limit && success == false){
+        try{
+          response = await service[0].fire(service[1], method, req)
+          res.status(response["status"]).json({body: response})
+          success = true
+        }catch(error){
+          err = error
+          error_count += 1
+          console.log("Service encountered an error! Retrying...")
+        }
       }
+      service[2] -= 1
+    }else{
+      //Ran out of options
+      res.status(503).json({error: "Service temporarily unavailable. Try again later"})
+      break
     }
-    service[2] -= 1
+    if(!success){
+      console.log("Too many errors from a service, re-routing...")
+    }
+    reroute_count += 1
+  }
+
+  if(success){
+    console.log("Response sent!")
   }else{
-    res.status(503).json({error: "Service temporarily unavailable. Try again later"})
+    console.log("Ran out of re-routes")
   }
   return res
 }
 
 
 function countPings(req, res, next){
-  const current_time = Date.now()
-  const time_window = 5000
-
-  // Every X seconds, clear the count
-  if(current_time - timestamp > time_window){
-    if(ping_count > ping_limit){
-      console.log(`CAUTION: High number of requests! ${ping_count} over the last ${time_window/1000} seconds`)
-    }
-    ping_count = 0
-    timestamp = current_time
+  if(ping_count > ping_limit && !ping_warning_sent){
+    console.log(`High number of requests over the last ${ping_time_window/1000} seconds!`)
+    ping_warning_sent = true
   }
 
   // Make sure to count the ping that triggered this function too
@@ -224,6 +253,13 @@ function countPings(req, res, next){
   // }
   next();
 }
+
+function clearPingCount(){
+  ping_count = 0
+  ping_warning_sent = false
+}
+
+setInterval(clearPingCount, ping_time_window)
 
 function authenticate(req, res, next){
   let auth = req.headers["authorization"]
@@ -333,6 +369,11 @@ app.get('/game/:gameID', countPings, authenticate, async (req, res) => {
 
 app.get('/status', (req, res) => {
   res.status(200).json({"status": "online"})
+})
+
+app.get("/metrics", async (req, res) => {
+  res.set('Content-Type', registry.contentType);
+  res.end(await registry.metrics());
 })
 
 

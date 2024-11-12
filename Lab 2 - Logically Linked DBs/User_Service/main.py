@@ -8,12 +8,15 @@ import psycopg2
 import jwt
 from time import sleep
 from concurrent import futures
+from prometheus_client import start_http_server, Counter
 
 import user_routes_pb2 as pb2
 import user_routes_pb2_grpc as pb2_grpc
 import health_pb2 as hpb2
 import health_pb2_grpc as hpb2_grpc
 
+
+request_counter = Counter("user_service_total_requests", "Total requests to the User Service")
 
 def registerSelf():
     response = requests.post(f"{SERVICE_DISCOVERY_URL}/register", json = {f"user-service": INSTANCE_ID})
@@ -90,6 +93,7 @@ class UserService(pb2_grpc.UserRoutesServicer):
                 result = {"status": 404}
 
         sleep(4.5)
+        request_counter.inc()
         
         return pb2.LoginConfirm(**result)
     
@@ -160,6 +164,8 @@ if __name__ == '__main__':
     
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
+
+    start_http_server(9900)
 
     conn = psycopg2.connect(os.getenv('DATABASE_URL'))
     conn.autocommit = True
