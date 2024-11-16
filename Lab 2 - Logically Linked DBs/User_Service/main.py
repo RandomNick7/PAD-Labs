@@ -92,7 +92,7 @@ class UserService(pb2_grpc.UserRoutesServicer):
                 # Credential mismatch - User Not Found!
                 result = {"status": 404}
 
-        sleep(4.5)
+        sleep(4)
         request_counter.inc()
         
         return pb2.LoginConfirm(**result)

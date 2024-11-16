@@ -7,6 +7,7 @@ const opossum = require('opossum');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const prom_client = require('prom-client');
+const Redis = require('ioredis');
 
 
 let PORT = 6969;
@@ -62,6 +63,14 @@ const userRouter = grpc.loadPackageDefinition(userPackageDef).user_routes;
 const gamePackageDef = protoLoader.loadSync(GAME_PROTO_PATH, loaderOptions);
 const gameRouter = grpc.loadPackageDefinition(gamePackageDef).game_routes;
 
+// Redis client setup
+const cluster = new Redis.Cluster(
+  [
+    {host: 'redis-1', port: 6379},
+    {host: 'redis-2', port: 6379},
+    {host: 'redis-3', port: 6379}
+  ]
+);
 
 
 function createClient(name, id){
@@ -84,7 +93,7 @@ function createCircuitBreaker(name){
    */
   const options = {
     name: name,
-    errorThresholdPercentage: 25,           // TODO: Experiment with different thresholds
+    errorThresholdPercentage: 50,           // TODO: Experiment with different thresholds
     timeout: timeout_max,
     rollingCountTimeout: timeout_max * 3.5, // Count the errors every few seconds instead
     resetTimeout: 10000,                    // Try again after 10s
@@ -193,26 +202,38 @@ async function registerSelf(){
 }
 
 
-async function RPC(req, res, service_name, method){
+async function RPC(req, res, service_name, method, cache=0, cache_key=null){
   /**
    * General-purpose function used for making calls to specific services
    */
   let success = false
   let reroute_count = 0
 
+  if(cache == 1 && cache_key != null){
+    // Retrieve value from cache
+    let value = cluster.get(cache_key).then((response) => {
+      console.log(response);
+      if(response != null){
+        res.status(200).json({body: response})
+        success = true
+      }
+    });
+  }
+
   while(reroute_count < reroute_limit && success == false){
+    // Pick an available service
     let service = pickService(service_name)
-    // Pick an available service that wasn't chosen before
     if(service != null){
+      console.log(service[0].options.name)
       service[2] += 1
       let error_count = 0
+      // Send the request up to error_limit times to the same service
       while(error_count < error_limit && success == false){
         try{
           response = await service[0].fire(service[1], method, req)
           res.status(response["status"]).json({body: response})
           success = true
         }catch(error){
-          err = error
           error_count += 1
           console.log("Service encountered an error! Retrying...")
         }
@@ -223,6 +244,7 @@ async function RPC(req, res, service_name, method){
       res.status(503).json({error: "Service temporarily unavailable. Try again later"})
       break
     }
+    
     if(!success){
       console.log("Too many errors from a service, re-routing...")
     }
@@ -230,11 +252,10 @@ async function RPC(req, res, service_name, method){
   }
 
   if(success){
-    console.log("Response sent!")
+    console.log("Response given!")
   }else{
     console.log("Ran out of re-routes")
   }
-  return res
 }
 
 
@@ -334,7 +355,7 @@ app.post('/frequest/:userID', countPings, authenticate, async (req, res) => {
 // ROUTES - GAME
 
 app.get('/lobby', countPings, authenticate, async (req, res) => {
-  RPC(req, res, "game-service", "getLobbies")
+  RPC(req, res, "game-service", "getLobbies", 1, "lobby_list")
 })
 
 app.get('/lobby/:lobbyID', countPings, authenticate, async (req, res) => {
@@ -344,7 +365,7 @@ app.get('/lobby/:lobbyID', countPings, authenticate, async (req, res) => {
 
 app.post('/lobby/make', countPings, authenticate, async (req, res) => {
   req.body["userID"] = req.body["srcID"]
-  RPC(req, res, "game-service", "makeLobby")
+  RPC(req, res, "game-service", "makeLobby", -1, "lobby_list")
 })
 
 app.post('/lobby/:lobbyID/join', countPings, authenticate, async (req, res) => {
@@ -356,7 +377,7 @@ app.post('/lobby/:lobbyID/join', countPings, authenticate, async (req, res) => {
 app.get('/lobby/:lobbyID/leave', countPings, authenticate, async (req, res) => {
   req.body["lobbyID"] = req.params.lobbyID
   req.body["userID"] = req.body["srcID"]
-  RPC(req, res, "game-service", "leaveLobby")
+  RPC(req, res, "game-service", "leaveLobby", -1, "lobby_list")
 })
 
 app.get('/game/:gameID', countPings, authenticate, async (req, res) => {
@@ -380,7 +401,6 @@ app.get("/metrics", async (req, res) => {
 server.listen(PORT, async () => {
   console.log(`App listening on port ${PORT}`)
   await registerSelf();
-  //await cacheClient.connect()
 
   // Make the gateway check Service Discovery every 3 seconds
   setInterval(setUpClients, 3000);
