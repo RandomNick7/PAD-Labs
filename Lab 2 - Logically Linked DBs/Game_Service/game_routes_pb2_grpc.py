@@ -64,6 +64,21 @@ class GameRoutesStub(object):
                 request_serializer=game__routes__pb2.GameID.SerializeToString,
                 response_deserializer=game__routes__pb2.Status.FromString,
                 _registered_method=True)
+        self.endGame = channel.unary_unary(
+                '/game_routes.GameRoutes/endGame',
+                request_serializer=game__routes__pb2.GameID.SerializeToString,
+                response_deserializer=game__routes__pb2.MapData.FromString,
+                _registered_method=True)
+        self.continueGame = channel.unary_unary(
+                '/game_routes.GameRoutes/continueGame',
+                request_serializer=game__routes__pb2.GameID.SerializeToString,
+                response_deserializer=game__routes__pb2.Status.FromString,
+                _registered_method=True)
+        self.closeGame = channel.unary_unary(
+                '/game_routes.GameRoutes/closeGame',
+                request_serializer=game__routes__pb2.GameID.SerializeToString,
+                response_deserializer=game__routes__pb2.Status.FromString,
+                _registered_method=True)
 
 
 class GameRoutesServicer(object):
@@ -100,9 +115,25 @@ class GameRoutesServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getGame(self, request, context):
-        """Placeholder Status value  ^ , return GameInfo with all nation, province & unit info
-        Do that either via gRPC or when first opening WebSocket connection
-        """
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def endGame(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def continueGame(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def closeGame(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -137,6 +168,21 @@ def add_GameRoutesServicer_to_server(servicer, server):
             ),
             'getGame': grpc.unary_unary_rpc_method_handler(
                     servicer.getGame,
+                    request_deserializer=game__routes__pb2.GameID.FromString,
+                    response_serializer=game__routes__pb2.Status.SerializeToString,
+            ),
+            'endGame': grpc.unary_unary_rpc_method_handler(
+                    servicer.endGame,
+                    request_deserializer=game__routes__pb2.GameID.FromString,
+                    response_serializer=game__routes__pb2.MapData.SerializeToString,
+            ),
+            'continueGame': grpc.unary_unary_rpc_method_handler(
+                    servicer.continueGame,
+                    request_deserializer=game__routes__pb2.GameID.FromString,
+                    response_serializer=game__routes__pb2.Status.SerializeToString,
+            ),
+            'closeGame': grpc.unary_unary_rpc_method_handler(
+                    servicer.closeGame,
                     request_deserializer=game__routes__pb2.GameID.FromString,
                     response_serializer=game__routes__pb2.Status.SerializeToString,
             ),
@@ -301,6 +347,87 @@ class GameRoutes(object):
             request,
             target,
             '/game_routes.GameRoutes/getGame',
+            game__routes__pb2.GameID.SerializeToString,
+            game__routes__pb2.Status.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def endGame(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/game_routes.GameRoutes/endGame',
+            game__routes__pb2.GameID.SerializeToString,
+            game__routes__pb2.MapData.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def continueGame(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/game_routes.GameRoutes/continueGame',
+            game__routes__pb2.GameID.SerializeToString,
+            game__routes__pb2.Status.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def closeGame(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/game_routes.GameRoutes/closeGame',
             game__routes__pb2.GameID.SerializeToString,
             game__routes__pb2.Status.FromString,
             options,

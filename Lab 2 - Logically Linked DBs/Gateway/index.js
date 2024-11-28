@@ -202,19 +202,21 @@ async function registerSelf(){
 }
 
 
-async function RPC(req, res, service_name, method, cache=0, cache_key=null){
+async function RPC(req, res, service_name, method, cache=0, cache_key=null, set_res=true){
   /**
    * General-purpose function used for making calls to specific services
    */
   let success = false
   let reroute_count = 0
+  let status = 503
+  let json = {}
 
   if(cache == 1 && cache_key != null){
     // Retrieve value from cache
-    let value = cluster.get(cache_key).then((response) => {
-      console.log(response);
-      if(response != null){
-        res.status(200).json({body: response})
+    cluster.get(cache_key).then((response) => {
+      if(response != null && to_report){
+        status = 200
+        json = {body: response}
         success = true
       }
     });
@@ -231,7 +233,8 @@ async function RPC(req, res, service_name, method, cache=0, cache_key=null){
       while(error_count < error_limit && success == false){
         try{
           response = await service[0].fire(service[1], method, req)
-          res.status(response["status"]).json({body: response})
+          status = response["status"]
+          json = {body: response}
           success = true
         }catch(error){
           error_count += 1
@@ -241,7 +244,8 @@ async function RPC(req, res, service_name, method, cache=0, cache_key=null){
       service[2] -= 1
     }else{
       //Ran out of options
-      res.status(503).json({error: "Service temporarily unavailable. Try again later"})
+      status = 503
+      json = {error: "Service temporarily unavailable. Try again later"}
       break
     }
     
@@ -255,6 +259,13 @@ async function RPC(req, res, service_name, method, cache=0, cache_key=null){
     console.log("Response given!")
   }else{
     console.log("Ran out of re-routes")
+  }
+
+  if(set_res){
+    res.status(status).json(json)
+    return res
+  }else{
+    return {status: status, body: json.body}
   }
 }
 
@@ -274,6 +285,7 @@ function countPings(req, res, next){
   // }
   next();
 }
+
 
 function clearPingCount(){
   ping_count = 0
@@ -384,6 +396,68 @@ app.get('/game/:gameID', countPings, authenticate, async (req, res) => {
   req.body["gameID"] = req.params.gameID
   RPC(req, res, "game-service", "getGame")
 })
+
+app.get("/game/:gameID/end", countPings, authenticate, async (req, res) => {
+  req.body["gameID"] = req.params.gameID
+
+  let reverse_process = [
+    // Args for RPC()
+    [req, res, "user-service", "undoGameData", 0, null, false],
+    [req, res, "game-service", "continueGame", 0, null, false]
+  ]
+  const rev_len = reverse_process.length
+  let counter = reverse_process.length
+  
+  // First call - Game Service - retrieve player stats
+  let resp = await RPC(req, res, "game-service", "endGame", 0, null, false);
+  console.log(resp)
+  if(resp.status == 200){
+    counter--
+  }else{
+    // On fail, just return an error, nothing to roll back
+    res.status(503).json({error: "Service currently unavailable"})
+    return res
+  }
+
+  console.log("Data received from Game Service")
+
+  // Second call - User Service - bind game stats to account and return confirmation
+  resp = await RPC(resp, res, "user-service", "saveGameData", 0, null, false);
+  if(resp.status != 200){
+    // On fail, undo previous write and return error
+    for(let i = rev_len - counter - 1; i < rev_len; i++){
+      RPC(...reverse_process[i]);
+    }
+    res.status(503).json({error: "Service currently unavailable"})
+    return res
+  }else{
+    counter--
+  }
+
+  console.log("Data sent to User Service")
+
+
+  // Third call - Game Service - Close down lobby and return confirmation
+  resp = await RPC(req, res, "game-service", "closeGame", 0, null, false);
+  if(resp.status != 200){
+    // On fail, undo all previous writes and return error
+    for(let i = rev_len - counter - 1; i < rev_len; i++){
+      RPC(...reverse_process[i]);
+    }
+    res.status(503).json({error: "Service currently unavailable"})
+    return res
+  }else{
+    // On success, report operation as complete
+    res.status(200).json({"status": 200});
+  }
+
+  console.log("Confirmation given to Game Service")
+})
+
+// TODO: Implement the commented out "undo" methods
+// TODO: Test out that each function works properly
+// TODO: Replace User DB with bitnami version of Postgres, see if it still works and follow tutorial
+// TODO: SQLAlchemy Python ETL service, copy all data from tables into separate "warehouse" DB
 
 
 // ROUTES - MISC.

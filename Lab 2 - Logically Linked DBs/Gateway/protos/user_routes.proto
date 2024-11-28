@@ -6,6 +6,8 @@ service UserRoutes{
     rpc tryLogin(Credentials) returns (LoginConfirm);
     rpc checkProfile(ProfileRequest) returns (UserInfo);
     rpc sendFriendRequest(RequestInfo) returns (Status);
+    rpc saveGameData(MapData) returns (Status);
+    rpc undoGameData(MapData) returns (Status);
 }
 
 message Credentials{
@@ -36,4 +38,14 @@ message RequestInfo{
 
 message Status{
     int32 status = 1;
+}
+
+message MapData{
+    int32 status = 1;
+    repeated PlayerData nations = 2;
+}
+
+message PlayerData{
+    int32 population = 1;
+    repeated int32 provinceIDs = 2;
 }

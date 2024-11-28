@@ -49,6 +49,16 @@ class UserRoutesStub(object):
                 request_serializer=user__routes__pb2.RequestInfo.SerializeToString,
                 response_deserializer=user__routes__pb2.Status.FromString,
                 _registered_method=True)
+        self.saveGameData = channel.unary_unary(
+                '/user_routes.UserRoutes/saveGameData',
+                request_serializer=user__routes__pb2.MapData.SerializeToString,
+                response_deserializer=user__routes__pb2.Status.FromString,
+                _registered_method=True)
+        self.undoGameData = channel.unary_unary(
+                '/user_routes.UserRoutes/undoGameData',
+                request_serializer=user__routes__pb2.MapData.SerializeToString,
+                response_deserializer=user__routes__pb2.Status.FromString,
+                _registered_method=True)
 
 
 class UserRoutesServicer(object):
@@ -72,6 +82,18 @@ class UserRoutesServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def saveGameData(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def undoGameData(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_UserRoutesServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -88,6 +110,16 @@ def add_UserRoutesServicer_to_server(servicer, server):
             'sendFriendRequest': grpc.unary_unary_rpc_method_handler(
                     servicer.sendFriendRequest,
                     request_deserializer=user__routes__pb2.RequestInfo.FromString,
+                    response_serializer=user__routes__pb2.Status.SerializeToString,
+            ),
+            'saveGameData': grpc.unary_unary_rpc_method_handler(
+                    servicer.saveGameData,
+                    request_deserializer=user__routes__pb2.MapData.FromString,
+                    response_serializer=user__routes__pb2.Status.SerializeToString,
+            ),
+            'undoGameData': grpc.unary_unary_rpc_method_handler(
+                    servicer.undoGameData,
+                    request_deserializer=user__routes__pb2.MapData.FromString,
                     response_serializer=user__routes__pb2.Status.SerializeToString,
             ),
     }
@@ -171,6 +203,60 @@ class UserRoutes(object):
             target,
             '/user_routes.UserRoutes/sendFriendRequest',
             user__routes__pb2.RequestInfo.SerializeToString,
+            user__routes__pb2.Status.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def saveGameData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/user_routes.UserRoutes/saveGameData',
+            user__routes__pb2.MapData.SerializeToString,
+            user__routes__pb2.Status.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def undoGameData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/user_routes.UserRoutes/undoGameData',
+            user__routes__pb2.MapData.SerializeToString,
             user__routes__pb2.Status.FromString,
             options,
             channel_credentials,

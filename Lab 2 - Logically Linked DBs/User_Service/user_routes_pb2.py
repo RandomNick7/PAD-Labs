@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11user_routes.proto\x12\x0buser_routes\"E\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x12\n\nnewAccount\x18\x03 \x01(\x08\"-\n\x0cLoginConfirm\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\r\n\x05token\x18\x02 \x01(\t\"/\n\x0eProfileRequest\x12\r\n\x05srcID\x18\x01 \x01(\x05\x12\x0e\n\x06userID\x18\x02 \x01(\x05\",\n\x08UserInfo\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x10\n\x08username\x18\x02 \x01(\t\",\n\x0bRequestInfo\x12\r\n\x05srcID\x18\x01 \x01(\x05\x12\x0e\n\x06\x64\x65stID\x18\x02 \x01(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\x32\xd5\x01\n\nUserRoutes\x12?\n\x08tryLogin\x12\x18.user_routes.Credentials\x1a\x19.user_routes.LoginConfirm\x12\x42\n\x0c\x63heckProfile\x12\x1b.user_routes.ProfileRequest\x1a\x15.user_routes.UserInfo\x12\x42\n\x11sendFriendRequest\x12\x18.user_routes.RequestInfo\x1a\x13.user_routes.Statusb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11user_routes.proto\x12\x0buser_routes\"E\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x12\n\nnewAccount\x18\x03 \x01(\x08\"-\n\x0cLoginConfirm\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\r\n\x05token\x18\x02 \x01(\t\"/\n\x0eProfileRequest\x12\r\n\x05srcID\x18\x01 \x01(\x05\x12\x0e\n\x06userID\x18\x02 \x01(\x05\",\n\x08UserInfo\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x10\n\x08username\x18\x02 \x01(\t\",\n\x0bRequestInfo\x12\r\n\x05srcID\x18\x01 \x01(\x05\x12\x0e\n\x06\x64\x65stID\x18\x02 \x01(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"C\n\x07MapData\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12(\n\x07nations\x18\x02 \x03(\x0b\x32\x17.user_routes.PlayerData\"5\n\nPlayerData\x12\x12\n\npopulation\x18\x01 \x01(\x05\x12\x13\n\x0bprovinceIDs\x18\x02 \x03(\x05\x32\xcb\x02\n\nUserRoutes\x12?\n\x08tryLogin\x12\x18.user_routes.Credentials\x1a\x19.user_routes.LoginConfirm\x12\x42\n\x0c\x63heckProfile\x12\x1b.user_routes.ProfileRequest\x1a\x15.user_routes.UserInfo\x12\x42\n\x11sendFriendRequest\x12\x18.user_routes.RequestInfo\x1a\x13.user_routes.Status\x12\x39\n\x0csaveGameData\x12\x14.user_routes.MapData\x1a\x13.user_routes.Status\x12\x39\n\x0cundoGameData\x12\x14.user_routes.MapData\x1a\x13.user_routes.Statusb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -43,6 +43,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_REQUESTINFO']._serialized_end=291
   _globals['_STATUS']._serialized_start=293
   _globals['_STATUS']._serialized_end=317
-  _globals['_USERROUTES']._serialized_start=320
-  _globals['_USERROUTES']._serialized_end=533
+  _globals['_MAPDATA']._serialized_start=319
+  _globals['_MAPDATA']._serialized_end=386
+  _globals['_PLAYERDATA']._serialized_start=388
+  _globals['_PLAYERDATA']._serialized_end=441
+  _globals['_USERROUTES']._serialized_start=444
+  _globals['_USERROUTES']._serialized_end=775
 # @@protoc_insertion_point(module_scope)

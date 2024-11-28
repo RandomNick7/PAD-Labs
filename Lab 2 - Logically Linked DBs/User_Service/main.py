@@ -130,6 +130,21 @@ class UserService(pb2_grpc.UserRoutesServicer):
             result = {"status": 400}
 
         return pb2.Status(**result)
+    
+    def saveGameData(self, request, context):
+        for i in request.nations:
+            logger.info(i.population)
+        # for i in request.nations:
+        
+        result = {"status": 200}
+        return pb2.Status(**result)
+    
+    def undoGameData(self, request, context):
+        # for i in request.nations:
+        #     logger.info()
+        
+        result = {"status": 200}
+        return pb2.Status(**result)
 
 
 def addAllServicers(server):

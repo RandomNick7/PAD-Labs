@@ -1,5 +1,6 @@
 import os
 import grpc
+import random
 import requests
 import logging
 import signal
@@ -146,6 +147,49 @@ class GameService(pb2_grpc.GameRoutesServicer):
         result = {"status": 200}
         # Placeholder...
         return pb2.Status(**result)
+    
+    def endGame(self, request, context):
+        # Made-up data for testing purposes
+        players = []
+        for i in range(random.randint(5, 20)):
+            player_info = pb2.PlayerData()
+
+            provinces = []
+            for i in range(random.randint(10, 50)):
+                provinces.append(random.randint(1, 400))
+            
+            player_info.population = random.randint(10000, 250000)
+            player_info.provinceIDs.extend(provinces)
+            players.append(player_info)
+        
+        query = "UPDATE lobby_tbl SET status = -1 WHERE id = %s RETURNING status"
+        cursor.execute(query, (request.gameID,))
+        lobby = cursor.fetchone()
+
+        if lobby != None:
+            result = {"status": 200, "nations": players}
+        else:
+            result = {"status": 404}
+        return pb2.MapData(**result)
+
+    def continueGame(self, request, context):
+        query = "UPDATE lobby_tbl SET status = 1 WHERE id = %s RETURNING status"
+        cursor.execute(query, (request.gameID,))
+        lobby = cursor.fetchone()
+
+        if lobby != None:
+            result = {"status": 200}
+        else:
+            result = {"status": 404}
+        return pb2.Status(**result)
+
+    def closeGame(self, request, context):
+        query = "DELETE FROM lobby_tbl WHERE id = %s;"
+        cursor.execute(query, (request.gameID,))
+        
+        result = {"status": 200}
+        return pb2.Status(**result)
+
 
 
 

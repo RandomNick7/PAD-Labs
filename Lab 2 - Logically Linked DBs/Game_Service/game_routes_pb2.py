@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11game_routes.proto\x12\x0bgame_routes\"\x07\n\x05\x45mpty\"\x1a\n\x07LobbyID\x12\x0f\n\x07lobbyID\x18\x01 \x01(\x05\"?\n\rLobbyMakeInfo\x12\x0e\n\x06userID\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08maxCount\x18\x03 \x01(\x05\"+\n\x08HybridID\x12\x0f\n\x07lobbyID\x18\x01 \x01(\x05\x12\x0e\n\x06userID\x18\x02 \x01(\x05\"f\n\x0cLobbyDetails\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x63urrMembers\x18\x03 \x01(\x05\x12\x12\n\nmaxMembers\x18\x04 \x01(\x05\x12\x0f\n\x07players\x18\x05 \x03(\x05\"B\n\tLobbyInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0b\x63urrMembers\x18\x02 \x01(\x05\x12\x12\n\nmaxMembers\x18\x03 \x01(\x05\"D\n\tLobbyList\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\'\n\x07lobbies\x18\x02 \x03(\x0b\x32\x16.game_routes.LobbyInfo\"\x18\n\x06GameID\x12\x0e\n\x06gameID\x18\x01 \x01(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\x32\xf5\x02\n\nGameRoutes\x12\x38\n\ngetLobbies\x12\x12.game_routes.Empty\x1a\x16.game_routes.LobbyList\x12;\n\x08getLobby\x12\x14.game_routes.LobbyID\x1a\x19.game_routes.LobbyDetails\x12\x42\n\tmakeLobby\x12\x1a.game_routes.LobbyMakeInfo\x1a\x19.game_routes.LobbyDetails\x12=\n\tjoinLobby\x12\x15.game_routes.HybridID\x1a\x19.game_routes.LobbyDetails\x12\x38\n\nleaveLobby\x12\x15.game_routes.HybridID\x1a\x13.game_routes.Status\x12\x33\n\x07getGame\x12\x13.game_routes.GameID\x1a\x13.game_routes.Statusb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11game_routes.proto\x12\x0bgame_routes\"\x07\n\x05\x45mpty\"\x1a\n\x07LobbyID\x12\x0f\n\x07lobbyID\x18\x01 \x01(\x05\"?\n\rLobbyMakeInfo\x12\x0e\n\x06userID\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08maxCount\x18\x03 \x01(\x05\"+\n\x08HybridID\x12\x0f\n\x07lobbyID\x18\x01 \x01(\x05\x12\x0e\n\x06userID\x18\x02 \x01(\x05\"f\n\x0cLobbyDetails\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x63urrMembers\x18\x03 \x01(\x05\x12\x12\n\nmaxMembers\x18\x04 \x01(\x05\x12\x0f\n\x07players\x18\x05 \x03(\x05\"B\n\tLobbyInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0b\x63urrMembers\x18\x02 \x01(\x05\x12\x12\n\nmaxMembers\x18\x03 \x01(\x05\"D\n\tLobbyList\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12\'\n\x07lobbies\x18\x02 \x03(\x0b\x32\x16.game_routes.LobbyInfo\"\x18\n\x06GameID\x12\x0e\n\x06gameID\x18\x01 \x01(\x05\"\x18\n\x06Status\x12\x0e\n\x06status\x18\x01 \x01(\x05\"C\n\x07MapData\x12\x0e\n\x06status\x18\x01 \x01(\x05\x12(\n\x07nations\x18\x02 \x03(\x0b\x32\x17.game_routes.PlayerData\"5\n\nPlayerData\x12\x12\n\npopulation\x18\x01 \x01(\x05\x12\x13\n\x0bprovinceIDs\x18\x02 \x03(\x05\x32\x9c\x04\n\nGameRoutes\x12\x38\n\ngetLobbies\x12\x12.game_routes.Empty\x1a\x16.game_routes.LobbyList\x12;\n\x08getLobby\x12\x14.game_routes.LobbyID\x1a\x19.game_routes.LobbyDetails\x12\x42\n\tmakeLobby\x12\x1a.game_routes.LobbyMakeInfo\x1a\x19.game_routes.LobbyDetails\x12=\n\tjoinLobby\x12\x15.game_routes.HybridID\x1a\x19.game_routes.LobbyDetails\x12\x38\n\nleaveLobby\x12\x15.game_routes.HybridID\x1a\x13.game_routes.Status\x12\x33\n\x07getGame\x12\x13.game_routes.GameID\x1a\x13.game_routes.Status\x12\x34\n\x07\x65ndGame\x12\x13.game_routes.GameID\x1a\x14.game_routes.MapData\x12\x38\n\x0c\x63ontinueGame\x12\x13.game_routes.GameID\x1a\x13.game_routes.Status\x12\x35\n\tcloseGame\x12\x13.game_routes.GameID\x1a\x13.game_routes.Statusb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -49,6 +49,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GAMEID']._serialized_end=447
   _globals['_STATUS']._serialized_start=449
   _globals['_STATUS']._serialized_end=473
-  _globals['_GAMEROUTES']._serialized_start=476
-  _globals['_GAMEROUTES']._serialized_end=849
+  _globals['_MAPDATA']._serialized_start=475
+  _globals['_MAPDATA']._serialized_end=542
+  _globals['_PLAYERDATA']._serialized_start=544
+  _globals['_PLAYERDATA']._serialized_end=597
+  _globals['_GAMEROUTES']._serialized_start=600
+  _globals['_GAMEROUTES']._serialized_end=1140
 # @@protoc_insertion_point(module_scope)
