@@ -197,20 +197,40 @@ services:
 
 
   user-db:
-    image: postgres:17
+    image: bitnami/postgresql:17
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: user_data
-      POSTGRES_USER: su_user
-      POSTGRES_PASSWORD: secret_pass_user
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=su_user
+      - POSTGRESQL_PASSWORD=secret_pass_user
+      - POSTGRESQL_DATABASE=user_data
+      - ALLOW_EMPTY_PASSWORD=yes
     healthcheck:
       test: pg_isready -U su_user -d user_data
       interval: 3s
       timeout: 5s
       retries: 5
     volumes:
-      - pg_user_data:/var/lib/postgresql/data
+      - master_user_data:/bitnami/postgresql
+
+  user-slave-db:
+    image: bitnami/postgresql:17
+    deploy:
+      replicas: 3
+    ports:
+      - "5432"
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_MASTER_HOST=user-db
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - ALLOW_EMPTY_PASSWORD=yes
+    depends_on:
+      - user-db
 
 
   game-db:
@@ -285,7 +305,8 @@ services:
 
 
 volumes:
-  pg_user_data:
+  master_user_data:
+    driver: local
   pg_game_data:
   prometheus_data:
   grafana_data:
