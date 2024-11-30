@@ -415,7 +415,7 @@ app.get("/game/:gameID/end", countPings, authenticate, async (req, res) => {
     counter--
   }else{
     // On fail, just return an error, nothing to roll back
-    res.status(503).json({error: "Service currently unavailable"})
+    res.status(503).json({error: "Services currently unavailable"})
     return res
   }
 
@@ -428,7 +428,7 @@ app.get("/game/:gameID/end", countPings, authenticate, async (req, res) => {
     for(let i = rev_len - counter - 1; i < rev_len; i++){
       RPC(...reverse_process[i]);
     }
-    res.status(503).json({error: "Service currently unavailable"})
+    res.status(503).json({error: "Services currently unavailable"})
     return res
   }else{
     counter--
@@ -444,7 +444,7 @@ app.get("/game/:gameID/end", countPings, authenticate, async (req, res) => {
     for(let i = rev_len - counter - 1; i < rev_len; i++){
       RPC(...reverse_process[i]);
     }
-    res.status(503).json({error: "Service currently unavailable"})
+    res.status(503).json({error: "Services currently unavailable"})
     return res
   }else{
     // On success, report operation as complete
@@ -453,11 +453,6 @@ app.get("/game/:gameID/end", countPings, authenticate, async (req, res) => {
 
   console.log("Confirmation given to Game Service")
 })
-
-// TODO: Implement the commented out "undo" methods
-// TODO: Test out that each function works properly
-// TODO: Replace User DB with bitnami version of Postgres, see if it still works and follow tutorial
-// TODO: SQLAlchemy Python ETL service, copy all data from tables into separate "warehouse" DB
 
 
 // ROUTES - MISC.

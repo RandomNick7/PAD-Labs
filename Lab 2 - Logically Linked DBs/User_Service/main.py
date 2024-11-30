@@ -132,9 +132,9 @@ class UserService(pb2_grpc.UserRoutesServicer):
         return pb2.Status(**result)
     
     def saveGameData(self, request, context):
-        for i in request.nations:
-            logger.info(i.population)
         # for i in request.nations:
+        #     logger.info(i.population)
+        logger.info("Stats saved")
         
         result = {"status": 200}
         return pb2.Status(**result)
@@ -142,6 +142,7 @@ class UserService(pb2_grpc.UserRoutesServicer):
     def undoGameData(self, request, context):
         # for i in request.nations:
         #     logger.info()
+        logger.info("Stats removed")
         
         result = {"status": 200}
         return pb2.Status(**result)
